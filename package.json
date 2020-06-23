@@ -1,0 +1,51 @@
+{
+  "name": "muse",
+  "version": "0.0.1",
+  "description": "Muse PDF Crawler",
+  "main": "dist/index.js",
+  "author": "Uros Karic",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "chalk": "^4.1.0",
+    "chmodr": "^1.2.0",
+    "clear": "^0.1.0",
+    "clui": "^0.3.6",
+    "download-chromium": "^2.2.1",
+    "figlet": "^1.4.0",
+    "fs-extra": "^9.0.1",
+    "inquirer": "^7.2.0",
+    "lodash": "^4.17.15",
+    "minimist": "^1.2.5",
+    "pdf-lib": "^1.8.0",
+    "puppeteer-core": "^4.0.0",
+    "validator": "^13.1.1"
+  },
+  "scripts": {
+    "dev": "ts-node-dev src/index.ts",
+    "pkg": "rm -rf ./pkg && pkg -t latest --out-path pkg ."
+  },
+  "bin": "dist/index.js",
+  "pkg": {
+    "assets": [
+      "./node_modules/figlet/fonts/**"
+    ],
+    "scripts": [
+      "./dist/**/*.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/chmodr": "^1.0.0",
+    "@types/clear": "^0.1.0",
+    "@types/figlet": "^1.2.0",
+    "@types/fs-extra": "^9.0.1",
+    "@types/inquirer": "^6.5.0",
+    "@types/lodash": "^4.14.156",
+    "@types/node": "^14.0.13",
+    "@types/puppeteer": "^3.0.0",
+    "@types/puppeteer-core": "^2.0.0",
+    "@types/validator": "^13.0.0",
+    "ts-node-dev": "^1.0.0-pre.49",
+    "typescript": "^3.9.5"
+  }
+}
