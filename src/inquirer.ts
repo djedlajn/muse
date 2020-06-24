@@ -1,7 +1,7 @@
 import inquirer = require("inquirer");
 import validator from "validator";
 
-export const askGithubCredentials = () => {
+export const questions = () => {
   const questions = [
     {
       name: "url",
@@ -14,6 +14,13 @@ export const askGithubCredentials = () => {
           return "Please enter valid MUSE book URL";
         }
       },
+    },
+    {
+      name: "combine",
+      type: "list",
+      message: "Should I try and combine pdfs ?",
+      choices: ["YES", "NO"],
+      default: "NO",
     },
   ];
   return inquirer.prompt(questions);

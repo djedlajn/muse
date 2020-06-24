@@ -13,7 +13,7 @@ import * as os from "os";
 
 const download = require("download-chromium");
 
-import { askGithubCredentials } from "./inquirer";
+import { questions } from "./inquirer";
 
 class Pupet {
   constructor(
@@ -57,9 +57,11 @@ class Pupet {
     }
   }
 
-  public async sortByFileName() {
+  public async sortByFileName(bookId: string) {
     try {
-      const fileNames = await fs.readdir(path.join(process.cwd(), "tmp"));
+      const fileNames = await fs.readdir(
+        path.join(process.cwd(), `book-${bookId}`)
+      );
       return fileNames.sort(
         (a, b) => Number(a.split(".")[0]) - Number(b.split(".")[0])
       );
@@ -86,21 +88,25 @@ class PupetBuilder {
     console.log(
       chalk.yellow(figlet.textSync("MUSE Rip", { horizontalLayout: "full" }))
     );
-    await fs.ensureDir(path.join(process.cwd(), "tmp"));
 
     const executable = await download({
       revision: 722234,
       installPath: `${os.tmpdir()}/.local-chromium`,
     });
 
-    console.log("TEMP", executable);
-
-    const creds = await askGithubCredentials();
+    const creds = await questions();
 
     const p = await PupetBuilder.build(creds.url as string, executable);
 
+    const url = creds.url as string;
+    const urlParts = url.split("/");
+    const bookId = urlParts[urlParts.length - 1];
+
     const t = await p.getTitle();
     const l = await p.getPdfLinks();
+
+    await fs.ensureDir(path.join(process.cwd(), `book-${bookId}`));
+    await fs.writeFile(`book-${bookId}/${t}.txt`, "", { encoding: "utf-8" });
 
     const np = await p.puppeteer.newPage();
 
@@ -110,7 +116,7 @@ class PupetBuilder {
         reqUrlParts[reqUrlParts.length - 1]
       }`;
       const file = fs.createWriteStream(
-        path.join(process.cwd(), "tmp", fileName)
+        path.join(process.cwd(), `book-${bookId}`, fileName)
       );
       https.get(req.url(), (response) => response.pipe(file));
     });
@@ -119,42 +125,46 @@ class PupetBuilder {
       await np.goto(link).catch((e) => null);
     }
 
-    const mergedPdf = await PDFDocument.create();
+    if (creds.combine === "YES") {
+      const mergedPdf = await PDFDocument.create();
 
-    const sortedFileNames = await p.sortByFileName();
+      const sortedFileNames = await p.sortByFileName(bookId);
 
-    const blanks: number[] = [];
-    for (const fileName of sortedFileNames) {
-      const pdfBytes = fs.readFileSync(
-        path.join(process.cwd(), "tmp", fileName)
-      );
+      const blanks: number[] = [];
+      for (const fileName of sortedFileNames) {
+        const pdfBytes = fs.readFileSync(
+          path.join(process.cwd(), `book-${bookId}`, fileName)
+        );
 
-      const pdf = await PDFDocument.load(pdfBytes);
+        const pdf = await PDFDocument.load(pdfBytes);
 
-      blanks.push(pdf.getPageCount());
+        blanks.push(pdf.getPageCount());
 
-      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        const copiedPages = await mergedPdf.copyPages(
+          pdf,
+          pdf.getPageIndices()
+        );
 
-      copiedPages.forEach((page) => {
-        mergedPdf.addPage(page);
-      });
+        copiedPages.forEach((page) => {
+          mergedPdf.addPage(page);
+        });
+      }
+
+      let tmpP = mergedPdf.getPageCount();
+      for (let i = blanks.length - 1; i >= 0; i--) {
+        tmpP -= blanks[i];
+        mergedPdf.removePage(tmpP);
+      }
+
+      mergedPdf.setTitle(t);
+
+      const mergedPdfFile = await mergedPdf.save();
+
+      await fs.writeFile(`${t}.pdf`, mergedPdfFile);
+      await fs.remove(path.join(process.cwd(), `book-${bookId}`));
     }
-
-    let tmpP = mergedPdf.getPageCount();
-    for (let i = blanks.length - 1; i >= 0; i--) {
-      tmpP -= blanks[i];
-      mergedPdf.removePage(tmpP);
-    }
-
-    mergedPdf.setTitle(t);
-
-    const mergedPdfFile = await mergedPdf.save();
-
-    await fs.writeFile(`${t}.pdf`, mergedPdfFile);
 
     await p.puppeteer.close();
-
-    await fs.remove(path.join(process.cwd(), "tmp"));
   } catch (e) {
     console.log(e);
     process.exit(1);
