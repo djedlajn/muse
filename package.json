@@ -6,7 +6,7 @@
   "author": "Uros Karic",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.20.0",
+    "axios": "^0.21.1",
     "chalk": "^4.1.0",
     "chmodr": "^1.2.0",
     "clear": "^0.1.0",
